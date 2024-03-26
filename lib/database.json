@@ -1,0 +1,24 @@
+{
+  "0209672f-751e-4af8-87f7-ed3dd15c95e4": {
+    "uuid": "0209672f-751e-4af8-87f7-ed3dd15c95e4",
+    "name": "Jon",
+    "rehearsal": "Rehearsal 1",
+    "callTime": "19:00",
+    "lineTime": "19:05",
+    "timeArrived": "12:37:14 AM",
+    "calls": []
+  },
+  "1c61d067-5e23-4344-868b-b5b12026bc4b": {
+    "uuid": "1c61d067-5e23-4344-868b-b5b12026bc4b",
+    "name": "Kiersten",
+    "rehearsal": "Rehearsal 1",
+    "callTime": "19:00",
+    "lineTime": "19:05",
+    "timeArrived": "1:29:51 AM",
+    "calls": [
+      "test^39",
+      "test2^60",
+      "jon_40"
+    ]
+  }
+}

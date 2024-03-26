@@ -1,0 +1,35 @@
+{
+  "include": [
+    "./src/*.ts",
+    "./test/*.ts",
+  ],
+  
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
+    
+    "target": "ES2021",
+    "module": "CommonJS",
+    "esModuleInterop": true,
+    "sourceMap": true,
+    "outDir": "dist"
+  },
+  
+  "typedocOptions": {
+    "entryPoints": [
+      "src/Expression.ts",
+      "src/ExpressionParser.ts",
+      "src/commands.ts",
+      "src/image-library.ts"
+    ],
+    "out": "doc",
+    "disableSources": true,
+    "excludePrivate": true,
+    "readme": "none"
+  },
+}
