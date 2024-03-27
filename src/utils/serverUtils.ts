@@ -15,7 +15,7 @@ import { distributeEarnings, isAdmin } from "./userUtils";
 import { convertCallObjToCallString } from "./callUtils";
 import { Call, CallType } from "./Call";
 import { GetEntriesRequest, GetEntriesResponse, AddEntryRequest, LogTimeRequest, PlaceBetRequest, GetUserRequest, GetUserResponse, LoginRequest, LogoutRequest, GetSelfResponse } from "./apiModels";
-import { addToHistory, moveToHistory } from "./historyUtils";
+import { addToHistory } from "./historyUtils";
 import { convertTimeInputToISOString } from "./timeUtils";
 
 type InitializeServerResponse = { wss: WebSocketServer, server: Server, entries: Map<string, Entry> }
