@@ -15,7 +15,7 @@ import { distributeEarnings, isAdmin } from "./userUtils";
 import { convertCallObjToCallString } from "./callUtils";
 import { Call, CallType } from "./Call";
 import { GetEntriesRequest, GetEntriesResponse, AddEntryRequest, LogTimeRequest, PlaceBetRequest, GetUserRequest, GetUserResponse, LoginRequest, LogoutRequest, GetSelfResponse } from "./apiModels";
-import { moveToHistory } from "./historyUtils";
+import { addToHistory, moveToHistory } from "./historyUtils";
 import { convertTimeInputToISOString } from "./timeUtils";
 
 type InitializeServerResponse = { wss: WebSocketServer, server: Server, entries: Map<string, Entry> }
@@ -122,7 +122,7 @@ export function initializeServer(): InitializeServerResponse {
                 saveDatabase(entries); 
                 const {profitMap, lossMap} = calculateEarnings(entries, uuid);
                 distributeEarnings(userData, profitMap);
-                moveToHistory(history, entryToModify, profitMap, lossMap);
+                addToHistory(history, entryToModify, profitMap, lossMap);
                 broadcast(wss, convertEntries(entries)); 
                 res.sendStatus(200);
             } else {

@@ -1,7 +1,7 @@
 import { HistoryEntry } from "./HistoryEntry";
 import { Entry } from "./Entry";
 
-export function moveToHistory(history: Map<string, HistoryEntry>, entryToModify: Entry, 
+export function addToHistory(history: Map<string, HistoryEntry>, entryToModify: Entry, 
     profitMap: Map<string, number>, lossMap: Map<string, number>): void {
     const historyEntry: HistoryEntry = {
         profitMap: profitMap,
