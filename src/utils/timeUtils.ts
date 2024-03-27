@@ -1,6 +1,29 @@
 import { TIME_REGEXP } from "./constants";
 
 /**
+ * Subtracts the time represented by the second operand from the time represented by the first operand.
+ * @param op1 - The first Date object representing the time.
+ * @param op2 - The second Date object representing the time.
+ * @returns The difference in minutes between the two times.
+ */
+export function subtractTime(op1: Date, op2: Date): number {
+    const millisecondsDiff = op1.getTime() - op2.getTime();
+    const minutesDiff = millisecondsDiff / (1000 * 60);
+    return minutesDiff;
+}
+
+/**
+ * Adds a specified number of minutes to a given date.
+ * @param date - The date to which minutes are to be added.
+ * @param minutes - The number of minutes to add.
+ * @returns A new Date object representing the resulting date after adding the minutes.
+ */
+export function addMinutes(date: Date, minutes: number) {
+    return new Date(date.getTime() + minutes*60000);
+}
+
+
+/**
  * Converts a time input in the format 'XX:YY AM/PM' to a string representation in the format 'YYYY-MM-DDTHH:MM:SS'.
  * The date part is set to today's date.
  * @param timeInput - The time input to convert.

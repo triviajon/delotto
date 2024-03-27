@@ -1,6 +1,7 @@
 import { Call, CallType } from "./Call";
 import { convertCallStringToCallObj } from "./callUtils";
 import { Entry } from "./Entry";
+import { addMinutes, subtractTime } from "./timeUtils";
 
 /**
  * Converts the entries map to one that is JSON stringifiable.
@@ -16,17 +17,6 @@ export function convertEntries(entries: Map<string, Entry>): { [key: string]: En
     return entriesObject;
 }
 
-/**
- * Subtracts the time represented by the second operand from the time represented by the first operand.
- * @param op1 - The first Date object representing the time.
- * @param op2 - The second Date object representing the time.
- * @returns The difference in minutes between the two times.
- */
-function subtractTime(op1: Date, op2: Date): number {
-    const millisecondsDiff = op1.getTime() - op2.getTime();
-    const minutesDiff = millisecondsDiff / (1000 * 60);
-    return minutesDiff;
-}
 
 /**
  * Computes the average lateness for entries with the specified name.
@@ -41,22 +31,11 @@ function averageLateness(entries: Map<string, Entry>, name: string): number {
 
     const totalLateness: number = filteredEntries
         .reduce<number>((runningTotal, currEntry) =>
-            runningTotal + subtractTime(new Date(currEntry.callTime), new Date(currEntry.timeArrived!)), 0);
+            runningTotal + subtractTime(new Date(currEntry.timeArrived!), new Date(currEntry.callTime)), 0);
 
     const numEntries = filteredEntries.length;
 
     return (numEntries !== 0) ? totalLateness / numEntries : 5;
-}
-
-
-/**
- * Adds a specified number of minutes to a given date.
- * @param date - The date to which minutes are to be added.
- * @param minutes - The number of minutes to add.
- * @returns A new Date object representing the resulting date after adding the minutes.
- */
-function addMinutes(date: Date, minutes: number) {
-    return new Date(date.getTime() + minutes*60000);
 }
 
 /**
@@ -68,6 +47,7 @@ function addMinutes(date: Date, minutes: number) {
  */
 export function calculateLineTime(entries: Map<string, Entry>, name: string, callTime: Date): Date {
     const lateness = averageLateness(entries, name);
+    console.log("Average lateness for", name, "is", lateness);
     const lineTime = addMinutes(callTime, lateness);
     return lineTime;
 }
