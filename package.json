@@ -6,12 +6,14 @@
   "scripts": {
     "compile": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "web": "tsc && node --require source-map-support/register dist/web-server.js"
+    "web": "tsc && node --require source-map-support/register dist/web-server.js",
+    "lint": "npx eslint . --ext .ts"
   },
   "author": "jon rosario",
   "license": "MIT",
   "devDependencies": {
     "@types/express-session": "^1.18.0",
+    "@typescript-eslint/eslint-plugin": "^7.4.0",
     "typescript": "^5.4.2"
   },
   "dependencies": {

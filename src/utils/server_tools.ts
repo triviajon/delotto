@@ -1,20 +1,22 @@
-import express, { Application, Request, Response } from "express";
-import WebSocket, { WebSocketServer } from 'ws';
-import { loadDatabase, saveDatabase, Entry, convertEntries, loadUserData, UserData, addUserEntry, Call, CallType, convertCallObjToCallString, saveUserDataMap, isAdmin, GetUserResponse, calculateLineTime, distributeEarnings, calculateEarnings} from "./database";
-import { PORT, STARTING_POINTS } from './constants';
-import Browserify from 'browserify';
-import fs from 'fs';
-import { Server } from 'http';
-import { stringify, v4 as uuidv4 } from 'uuid';
-import path from 'path';
-import session from 'express-session';
-import bcryptjs from 'bcryptjs';
+import express, { Request, Response } from "express";
+import WebSocket, { WebSocketServer } from "ws";
+import { PORT } from "./constants";
+import Browserify from "browserify";
+import fs from "fs";
+import { Server } from "http";
+import { v4 as uuidv4 } from "uuid";
+import session from "express-session";
+import { Entry } from "./entry";
+import { UserData } from "./UserData";
+import { comparePasswords } from "./encryptionUtils";
+import { loadDatabase, loadUserData, saveDatabase, saveUserDataMap } from "./fileSystemUtils";
+import { calculateEarnings, calculateLineTime, convertEntries } from "./entryUtils";
+import { distributeEarnings, isAdmin } from "./userUtils";
+import { convertCallObjToCallString } from "./callUtils";
+import { Call, CallType } from "./Call";
+// import { GetUserResponse } from "./apiModels";
+import { GetEntriesRequest, GetEntriesResponse, AddEntryRequest, LogTimeRequest, PlaceBetRequest, GetUserRequest, GetUserResponse, LoginRequest, LogoutRequest, GetSelfResponse } from "./apiModels";
 
-declare module 'express-session' {
-    export interface SessionData {
-        user: string;
-    }
-}
 
 type InitializeServerResponse = { wss: WebSocketServer, server: Server, entries: Map<string, Entry> }
 
@@ -24,7 +26,7 @@ type InitializeServerResponse = { wss: WebSocketServer, server: Server, entries:
  * @param wss the websocket server to use
  * @param data the data to be sent through the websocket, must be JSON stringifyable.
  */
-function broadcast(socketServer: WebSocketServer, data: any) {
+function broadcast<T>(socketServer: WebSocketServer, data: T) {
     console.log("Sending over data:", JSON.stringify(data));
     socketServer.clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
@@ -38,22 +40,19 @@ function broadcast(socketServer: WebSocketServer, data: any) {
  * Otherwise, we create a new user on the database with the username.
  * 
  * @param username the user's username. must have length > 0.
- * @param hashedPassword the user's password, hashed. must have length > 0. 
+ * @param password the user's password. must have length > 0. 
  * @returns true if the username exists and the hashedPasswords match OR if the username does not exist, else false
  */
-async function authenticate(userDatabase: Map<string, UserData>, username: string, hashedPassword: string): Promise<boolean> {
+async function authenticate(userDatabase: Map<string, UserData>, username: string, password: string): Promise<boolean> {
     const lowerUsername = username.toLowerCase();
-    // Check if the username exists in the database
-    if (userDatabase.has(lowerUsername)) {
-        // Compare the hashed password in the database with the provided hashed password
-        const storedHashedPassword = userDatabase.get(lowerUsername)!.hashedPassword;
-        const match: boolean = await bcryptjs.compare(hashedPassword, storedHashedPassword);
-        return match;
-    } else {
-        // If the username does not exist, create a new user with the provided hashed password
-        addUserEntry(userDatabase, lowerUsername, hashedPassword, STARTING_POINTS);
-        return true;
+    const storedUserData = userDatabase.get(lowerUsername);
+
+    if (!storedUserData) {
+        return false; // User not found
     }
+
+    const storedHashedPassword = storedUserData.hashedPassword;
+    return await comparePasswords(password, storedHashedPassword);
 }
 /**
  * Initializes the server.
@@ -67,31 +66,36 @@ export function initializeServer(): InitializeServerResponse {
     app.use(express.json());
 
     app.use(session({
-        secret: 'testSecret',
+        secret: "testSecret",
         resave: false,
         saveUninitialized: true,
     }));
 
+    app.use("/lib", express.static("lib"));
+
     const entries = loadDatabase();
     const userData = loadUserData();
-    console.log(entries, typeof (entries));
 
     // Endpoint to retrieve the list of entries
-    app.get('/entries', function (req: Request, res: Response) {
-        res.json(convertEntries(entries));
+    app.get("/entries", function (req: Request, res: Response) {
+        const body: GetEntriesRequest = req.body;
+        console.debug("GET /entries:", body);
+        const responseBody: GetEntriesResponse = convertEntries(entries);
+        res.json(responseBody);
     });
 
     // Endpoint to add a new entry
-    app.post('/entries', function (req: Request, res: Response) {
+    app.post("/entries", function (req: Request, res: Response) {
+        const body: AddEntryRequest = req.body;
+        console.debug("POST /entries:", body);
         if (req.session && req.session.user && isAdmin(req.session.user)) {
-            const reqBody = req.body;
             const uuid: string = uuidv4();
             const newEntry: Entry = {
                 uuid: uuid,
-                name: reqBody.name,
-                rehearsal: reqBody.rehearsal,
-                callTime: reqBody.callTime,
-                lineTime: calculateLineTime(entries, reqBody.name, reqBody.callTime),
+                name: body.name,
+                rehearsal: body.rehearsal,
+                callTime: body.callTime,
+                lineTime: calculateLineTime(entries, body.name, body.callTime),
                 timeArrived: "",
                 calls: Array<string>()
             };
@@ -102,65 +106,68 @@ export function initializeServer(): InitializeServerResponse {
         } else {
             res.sendStatus(401);
         }
-
-
     });
 
     // Endpoint to log time
-    app.post('/log', function (req: Request, res: Response) {
+    app.post("/log", function (req: Request, res: Response) {
+        const body: LogTimeRequest = req.body;
+        console.debug("POST /log:", body);
         if (req.session && req.session.user && isAdmin(req.session.user)) {
-            const uuid: string = req.body['uuid'];
+            const uuid: string = body["uuid"];
             const entryToModify: Entry | undefined = entries.get(uuid);
             if (entryToModify !== undefined) {
                 entryToModify.timeArrived = new Date().toLocaleTimeString();
-                saveDatabase(entries); // Save entries to the database after updating the time
+                saveDatabase(entries); 
                 const profitMap: Map<string, number> = calculateEarnings(entries, uuid);
                 distributeEarnings(userData, profitMap);
-                broadcast(wss, convertEntries(entries)); // Broadcast updated entries to all clients    
+                broadcast(wss, convertEntries(entries)); 
                 res.sendStatus(200);
             } else {
-                res.status(400).json({ error: 'Invalid entry ID: ' + uuid });
+                res.status(400).json({ error: "Invalid entry ID: " + uuid });
             }
         } else {
             res.sendStatus(401);
         }
     });
 
-    app.post('/place', (req: Request, res: Response) => {
-        const { uuid, overUnder, pointsToBet } = req.body;
-        const entryToModify: Entry | undefined = entries.get(uuid);
+    app.post("/place", (req: Request, res: Response) => {
+        const body: PlaceBetRequest = req.body;
+        console.debug("POST /place:", body);
+        const entryToModify: Entry | undefined = entries.get(body.uuid);
         if (req.session && req.session.user && entryToModify && entryToModify.timeArrived === "") {
             const username = req.session.user;
             const usernameData = userData.get(username);
-            if (usernameData && usernameData.points >= pointsToBet) {
-                usernameData.points -= pointsToBet;
+            if (usernameData && usernameData.points >= body.pointsToBet) {
+                usernameData.points -= body.pointsToBet;
                 saveUserDataMap(userData);
                 const call: Call = {
                     name: username,
-                    type: overUnder === "over" ? CallType.Over : CallType.Under,
-                    value: pointsToBet
-                }
+                    type: body.overUnder === "over" ? CallType.Over : CallType.Under,
+                    value: body.pointsToBet
+                };
                 entryToModify.calls.push(convertCallObjToCallString(call));
                 saveDatabase(entries);
                 broadcast(wss, convertEntries(entries));
                 res.sendStatus(200);
             } else {
-                res.status(400).json({ error: 'Insufficient points!' });
+                res.status(400).json({ error: "Insufficient points!" });
             }
         } else {    
-            res.status(400).json({ error: 'Something went wrong!' });
+            res.status(400).json({ error: "Something went wrong!" });
         }
-    }) 
+    }); 
 
-    app.get('/user/:username', (req, res) => {
-        const username = req.params.username;
-        const user = userData.get(username);
+    app.get("/user/:username", (req, res) => {
+        const params: GetUserRequest = req.params;
+        console.debug("GET /user/:username:", params);
+
+        const user = userData.get(params.username);
         if (req.session && req.session.user && user) {
-            if (req.session.user == username || isAdmin(req.session.user)) {
+            if (req.session.user == params.username || isAdmin(req.session.user)) {
                 const userResponse: GetUserResponse = {
-                    username: username,
+                    username: params.username,
                     points: user.points
-                }
+                };
                 res.json(userResponse);
             } else {
                 res.status(401);
@@ -170,64 +177,72 @@ export function initializeServer(): InitializeServerResponse {
         }
     });
 
-    // Endpoint to update an existing entry
-    app.put('/entries/:id', function (req: Request, res: Response) {
-        const uuid = req.params["uuid"]!;
-        const updatedEntry = req.body;
-        entries.set(uuid, updatedEntry);
-        saveDatabase(entries);
-        broadcast(wss, convertEntries(entries));
-        res.sendStatus(204);
-    });
-
     // Endpoint to delete an entry
-    app.delete('/entries/:id', function (req: Request, res: Response) {
-        const uuid = req.params["uuid"]!;
-        entries.delete(uuid);
-        saveDatabase(entries);
-        broadcast(wss, entries);
-        res.sendStatus(204);
+    app.delete("/entries/:uuid", function (req: Request, res: Response) {
+        const params = req.params as { uuid: string };
+        console.debug("DELETE /entries/:uuid:", params);
+
+        if (req.session && req.session.user && isAdmin(req.session.user)) {
+            entries.delete(params.uuid);
+            saveDatabase(entries);
+            broadcast(wss, entries);
+            res.sendStatus(204);
+        } else {
+            res.sendStatus(401);
+        }
     });
 
-    app.get('/bundle.js', function (req: Request, res: Response) {
-        res.contentType('application/javascript');
-        new Browserify().add('dist/web-client.js').bundle().pipe(res, { end: true });
+    app.get("/bundle.js", function (req: Request, res: Response) {
+        res.contentType("application/javascript");
+        new Browserify().add("dist/web-client.js").bundle().pipe(res, { end: true });
     });
 
-    app.get('/', function (req: Request, res: Response) {
-        res.end(fs.readFileSync('lib/web.html', { encoding: 'utf-8' }));
+    app.get("/", function (req: Request, res: Response) {
+        res.end(fs.readFileSync("lib/web.html", { encoding: "utf-8" }));
     });
 
     // Endpoint to handle login requests
-    app.post('/login', async (req, res) => {
-        const { username, password } = req.body;
-        const validUser: boolean = await authenticate(userData, username, password);
+    app.post("/login", async (req, res) => {
+        const body: LoginRequest = req.body;
+        console.debug("POST /login:", body);
+        const validUser: boolean = await authenticate(userData, body.username, body.password);
         
         if (validUser) {
-            req.session.user = username;
-            res.status(200).send('Login successful');
+            req.session.user = body.username;
+            res.status(200).send("Login successful");
         } else {
-            res.status(401).send('Invalid username or password');
+            res.status(401).send("Invalid username or password");
         }
     });
 
     // Endpoint to handle logout requests
-    app.post('/logout', (req, res) => {
+    app.post("/logout", (req, res) => {
+        const body: LogoutRequest = req.body;
+        console.debug("POST /logout:", body);
         req.session.destroy(err => {
             if (err) {
-                console.error('Error logging out:', err);
-                res.status(500).send('Error logging out');
+                console.error("Error logging out:", err);
+                res.status(500).send("Error logging out");
             } else {
-                res.status(200).send('Logout successful');
+                res.status(200).send("Logout successful");
             }
         });
     });
 
-    app.get('/user', (req, res) => {
-        const loggedIn: boolean = (req.session !== undefined && req.session.user !== undefined);
-        const username = loggedIn ? req.session.user : undefined;
-        res.status(200).json({loggedIn, username});
-    })
+    app.get("/self", (req: Request, res: Response) => {
+        const isLoggedIn: boolean = (req.session !== undefined && req.session.user !== undefined);
+        const username = isLoggedIn ? req.session.user : undefined;
+        const responseBody: GetSelfResponse = {
+            loggedIn: isLoggedIn,
+            username: username
+        };
+
+        if (isLoggedIn) {
+            res.status(200).json(responseBody);
+        } else {
+            res.status(401).json(responseBody);
+        }
+    });
 
     const server = app.listen(PORT, () => {
         console.log(`Web server listening on http://localhost:${PORT}`);

@@ -1,54 +1,242 @@
 body {
-    font-family: 'Courier New', Courier, monospace;
-    background-color: #1a1a1a;
-    color: #b3b3b3;
+  font-family: 'Courier New', Courier, monospace;
+  background-color: #1a1a1a;
+  color: #b3b3b3;
+}
+
+h1 {
+  color: #ff9900;
+  margin: 10px;
+}
+
+.row {
+  padding: 10px;
+}
+
+textarea,
+.marquee {
+  font-family: 'Courier New', Courier, monospace;
+  background-color: #333;
+  color: #b3b3b3;
+  border: 1px solid #666;
+}
+
+button {
+  font-family: 'Courier New', Courier, monospace;
+  background-color: #ff9900;
+  color: #1a1a1a;
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #cc7a00;
+}
+
+.table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.table th,
+.table td {
+  border: 1px solid #666;
+  padding: 8px;
+}
+
+.table th {
+  background-color: #1a1a1a;
+  color: #ff9900;
+}
+
+.table td {
+  background-color: #333;
+  color: #b3b3b3;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+  background-color: #292929;
+}
+
+.row-call,
+.row-rehearsal {
+  max-width: 10em;
+  overflow: hidden;
+  white-space: nowrap;
+  padding: 5px 0;
+}
+
+.row-lineCallTime {
+  text-align: center;
+}
+
+.row-uuid {
+  max-width: 10ch;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.row-timeArrived,
+.row-actions {
+  text-align: center;
+}
+
+.over {
+  color: rgb(238, 83, 83);
+}
+
+.under {
+  color: rgb(102, 227, 129);
+}
+
+.login-container,
+.logout-container {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+@media only screen and (max-width: 600px) {
+  .logout-container {
+    position: sticky;
+    text-align: left;
+    margin: 10px;
   }
-  
-  h1 {
-    color: #ff9900;
-  }
-  
-  textarea {
-    font-family: 'Courier New', Courier, monospace;
-    background-color: #333;
-    color: #b3b3b3;
-    border: 1px solid #666;
-  }
-  
-  button {
-    font-family: 'Courier New', Courier, monospace;
-    background-color: #ff9900;
-    color: #1a1a1a;
-    border: none;
-    padding: 8px 16px;
-    cursor: pointer;
-  }
-  
-  button:hover {
-    background-color: #cc7a00;
-  }
-  
-  .table {
-    border-collapse: collapse;
-    width: 100%;
-  }
-  
-  .table th, .table td {
-    border: 1px solid #666;
-    padding: 8px;
-  }
-  
-  .table th {
-    background-color: #1a1a1a;
-    color: #ff9900;
-  }
-  
-  .table td {
-    background-color: #333;
-    color: #b3b3b3;
-  }
-  
-  .table-striped tbody tr:nth-of-type(odd) {
-    background-color: #292929;
-  }
-  
+}
+
+#greeting,
+#points,
+#logoutButton {
+  display: inline;
+}
+
+/* Overlay */
+.overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+.form-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #f9f9f9;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  width: 300px;
+}
+
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.close-btn:hover {
+  background: none;
+}
+
+.wager-form label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.wager-form input[type="text"],
+.wager-form input[type="number"] {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.wager-form button {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.wager-form button:hover {
+  background-color: #0056b3;
+}
+
+.time-select {
+  margin-bottom: 16px;
+}
+
+.time-select label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.time-inputs {
+  display: flex;
+}
+
+.time-inputs select {
+  flex: 1;
+  margin-right: 4px;
+}
+
+.time-inputs span {
+  margin: auto 4px;
+}
+
+#overUnder {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  background-color: #fff;
+  color: #333;
+}
+
+#overUnder:hover {
+  border-color: #007bff;
+}
+
+#overUnder:focus {
+  border-color: #007bff;
+  outline: none;
+}
+
+#overUnder::after {
+  content: '\25BC';
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+#betInfo {
+  padding: 10px;
+  margin-top: 10px;
+  background-color: #333;
+  color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}

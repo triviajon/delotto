@@ -2,16 +2,16 @@
   "test": {
     "username": "test",
     "hashedPassword": "$2a$10$EDE/4taTl70EP6oU3m9PrOyaN8stcywjAuzhXhvApWFtWX5fB4aQG",
-    "points": 24
+    "points": 222
   },
   "jon": {
     "username": "jon",
     "hashedPassword": "$2a$10$/Q6xoGD90cT0QOZ9Tw8YU.cw0swI4UMqB2qHheYYEArYP/kWqs0GG",
-    "points": 159
+    "points": 79
   },
   "test2": {
     "username": "test2",
     "hashedPassword": "$2a$10$AV5xs1PmQ6OFxegd4bycBuKZ3v/YhBwpnw/jOWdHMqOtZhewor206",
-    "points": 40
+    "points": 10
   }
 }
