@@ -1,4 +1,4 @@
-import { Entry } from "./entry";
+import { Entry } from "./Entry";
 
 // Request interface for GET /entries
 export interface GetEntriesRequest {}

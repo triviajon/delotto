@@ -1,6 +1,6 @@
 import { Call, CallType } from "./Call";
 import { convertCallStringToCallObj } from "./callUtils";
-import { Entry } from "./entry"; 
+import { Entry } from "./Entry";
 
 /**
  * Converts the entries map to one that is JSON stringifiable.
@@ -16,46 +16,16 @@ export function convertEntries(entries: Map<string, Entry>): { [key: string]: En
     return entriesObject;
 }
 
-
-/**
- * Converts a time string to the 'ab:cd' format.
- * @param timeString - The time string to convert.
- * @returns The time string in the 'ab:cd' format.
- */
-function convertToAbCd(timeString: string): string {
-    const [timePart, amPmPart] = timeString.split(" ");
-    const [hours, minutes, seconds] = timePart!.split(":").map(Number);
-
-    console.debug(hours, minutes, seconds);
-
-    let adjustedHours = hours!;
-    if (amPmPart === "PM" && hours !== 12) {
-        adjustedHours += 12;
-    } else if (amPmPart === "AM" && hours === 12) {
-        adjustedHours = 0;
-    }
-
-    const paddedMinutes = minutes! < 10 ? "0" + minutes : minutes!.toString();
-    const paddedHours = adjustedHours < 10 ? "0" + hours : adjustedHours.toString();
-
-    const abCdTime = `${paddedHours}:${paddedMinutes}`;
-    return abCdTime;
-}
-
 /**
  * Subtracts the time represented by the second operand from the time represented by the first operand.
- * @param op1 - The first time operand in the format 'hh:mm'.
- * @param op2 - The second time operand in the format 'hh:mm'.
+ * @param op1 - The first Date object representing the time.
+ * @param op2 - The second Date object representing the time.
  * @returns The difference in minutes between the two times.
  */
-function subtractTime(op1: string, op2: string): number {
-    const [hours1, minutes1] = op1.split(":").map(Number);
-    const [hours2, minutes2] = op2.split(":").map(Number);
-
-    const totalMinutes1 = hours1! * 60 + minutes1!;
-    const totalMinutes2 = hours2! * 60 + minutes2!;
-
-    return totalMinutes1 - totalMinutes2;
+function subtractTime(op1: Date, op2: Date): number {
+    const millisecondsDiff = op1.getTime() - op2.getTime();
+    const minutesDiff = millisecondsDiff / (1000 * 60);
+    return minutesDiff;
 }
 
 /**
@@ -67,16 +37,26 @@ function subtractTime(op1: string, op2: string): number {
 function averageLateness(entries: Map<string, Entry>, name: string): number {
     const filteredEntries = Array.from(entries.values())
         .filter((entry: Entry) => entry.name === name)
-        .filter((entry: Entry) => entry.timeArrived !== "");
+        .filter((entry: Entry) => entry.timeArrived !== undefined);
 
     const totalLateness: number = filteredEntries
         .reduce<number>((runningTotal, currEntry) =>
-            runningTotal + subtractTime(currEntry.callTime, convertToAbCd(currEntry.timeArrived)
-            ), 0);
+            runningTotal + subtractTime(new Date(currEntry.callTime), new Date(currEntry.timeArrived!)), 0);
 
     const numEntries = filteredEntries.length;
 
     return (numEntries !== 0) ? totalLateness / numEntries : 5;
+}
+
+
+/**
+ * Adds a specified number of minutes to a given date.
+ * @param date - The date to which minutes are to be added.
+ * @param minutes - The number of minutes to add.
+ * @returns A new Date object representing the resulting date after adding the minutes.
+ */
+function addMinutes(date: Date, minutes: number) {
+    return new Date(date.getTime() + minutes*60000);
 }
 
 /**
@@ -86,23 +66,10 @@ function averageLateness(entries: Map<string, Entry>, name: string): number {
  * @param callTime - The original call time.
  * @returns The line time based on average lateness, or callTime + 5 minutes if no prior data exists for `name` in entries.
  */
-export function calculateLineTime(entries: Map<string, Entry>, name: string, callTime: string): string {
-    const [hoursStr, minutesStr] = callTime.split(":");
-    let hours = parseInt(hoursStr!);
-    let minutes = parseInt(minutesStr!);
-
-    minutes += averageLateness(entries, name);
-
-    if (minutes >= 60) {
-        hours += Math.floor(minutes / 60);
-        minutes %= 60;
-    }
-
-    hours %= 24;
-    const paddedHours = hours.toString().padStart(2, "0");
-    const paddedMinutes = minutes.toString().padStart(2, "0");
-
-    return `${paddedHours}:${paddedMinutes}`;
+export function calculateLineTime(entries: Map<string, Entry>, name: string, callTime: Date): Date {
+    const lateness = averageLateness(entries, name);
+    const lineTime = addMinutes(callTime, lateness);
+    return lineTime;
 }
 
 /**
@@ -111,9 +78,9 @@ export function calculateLineTime(entries: Map<string, Entry>, name: string, cal
  * @param uuid - The unique identifier of the entry for which earnings are to be distributed.
  * @returns A map where the keys represent the names of callers and the values represent their earnings.
  */
-export function calculateEarnings(entries: Map<string, Entry>, uuid: string): Map<string, number> {
+export function calculateEarnings(entries: Map<string, Entry>, uuid: string): { profitMap: Map<string, number>, lossMap: Map<string, number> } {
     const relevantEntry: Entry = entries.get(uuid)!;
-    const winningCallType: CallType = subtractTime(convertToAbCd(relevantEntry.timeArrived), relevantEntry.lineTime) > 0 ?
+    const winningCallType: CallType = subtractTime(new Date(relevantEntry.timeArrived!), new Date(relevantEntry.lineTime)) > 0 ?
         CallType.Over : CallType.Under;
     console.log(winningCallType);
     const overCalls: Array<Call> = relevantEntry.calls
@@ -127,6 +94,7 @@ export function calculateEarnings(entries: Map<string, Entry>, uuid: string): Ma
 
     const winningCalls = winningCallType === CallType.Over ? overCalls : underCalls;
     const winningTotalWagered = winningCallType === CallType.Over ? overTotalWagered : underTotalWagered;
+    const losingCalls = winningCallType === CallType.Over ? underCalls : overCalls;
     const losingTotalWagered = winningCallType === CallType.Over ? underTotalWagered : overTotalWagered;
 
     const profitMap: Map<string, number> = new Map();
@@ -136,6 +104,12 @@ export function calculateEarnings(entries: Map<string, Entry>, uuid: string): Ma
         const currentEarnings: number = profitMap.get(winningCall.name) ?? 0;
         profitMap.set(winningCall.name, currentEarnings + earningsFromCall);
     }
+    const lossMap: Map<string, number> = new Map();
+    for (const losingCall of losingCalls) {
+        const currentLosses: number = lossMap.get(losingCall.name) ?? 0;
+        lossMap.set(losingCall.name, currentLosses + losingCall.value);
+    }
+
     console.log("ProfitMap:", profitMap);
-    return profitMap;
+    return { profitMap, lossMap };
 }

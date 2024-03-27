@@ -1,5 +1,5 @@
 export interface UserData {
-    username: string; // non-empty
-    hashedPassword: string; // non-empty
+    username: string; // length > 0
+    hashedPassword: string; // length > 0
     points: number; // > 0, integral
 }

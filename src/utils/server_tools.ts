@@ -1,22 +1,22 @@
 import express, { Request, Response } from "express";
 import WebSocket, { WebSocketServer } from "ws";
-import { PORT } from "./constants";
+import { PORT, TIME_REGEXP } from "./constants";
 import Browserify from "browserify";
 import fs from "fs";
 import { Server } from "http";
 import { v4 as uuidv4 } from "uuid";
 import session from "express-session";
-import { Entry } from "./entry";
+import { Entry } from "./Entry";
 import { UserData } from "./UserData";
 import { comparePasswords } from "./encryptionUtils";
-import { loadDatabase, loadUserData, saveDatabase, saveUserDataMap } from "./fileSystemUtils";
+import { loadDatabase, loadHistory, loadUserData, saveDatabase, saveUserDataMap } from "./fileSystemUtils";
 import { calculateEarnings, calculateLineTime, convertEntries } from "./entryUtils";
 import { distributeEarnings, isAdmin } from "./userUtils";
 import { convertCallObjToCallString } from "./callUtils";
 import { Call, CallType } from "./Call";
-// import { GetUserResponse } from "./apiModels";
 import { GetEntriesRequest, GetEntriesResponse, AddEntryRequest, LogTimeRequest, PlaceBetRequest, GetUserRequest, GetUserResponse, LoginRequest, LogoutRequest, GetSelfResponse } from "./apiModels";
-
+import { moveToHistory } from "./historyUtils";
+import { convertTimeInputToISOString } from "./timeUtils";
 
 type InitializeServerResponse = { wss: WebSocketServer, server: Server, entries: Map<string, Entry> }
 
@@ -75,6 +75,7 @@ export function initializeServer(): InitializeServerResponse {
 
     const entries = loadDatabase();
     const userData = loadUserData();
+    const history = loadHistory();
 
     // Endpoint to retrieve the list of entries
     app.get("/entries", function (req: Request, res: Response) {
@@ -88,16 +89,17 @@ export function initializeServer(): InitializeServerResponse {
     app.post("/entries", function (req: Request, res: Response) {
         const body: AddEntryRequest = req.body;
         console.debug("POST /entries:", body);
-        if (req.session && req.session.user && isAdmin(req.session.user)) {
+        if (req.session && req.session.user && isAdmin(req.session.user) && TIME_REGEXP.test(body.callTime)) {
             const uuid: string = uuidv4();
+            const callTime: string = convertTimeInputToISOString(body.callTime);
             const newEntry: Entry = {
                 uuid: uuid,
                 name: body.name,
                 rehearsal: body.rehearsal,
-                callTime: body.callTime,
-                lineTime: calculateLineTime(entries, body.name, body.callTime),
-                timeArrived: "",
-                calls: Array<string>()
+                callTime: callTime,
+                lineTime: calculateLineTime(entries, body.name, new Date(callTime)).toISOString(),
+                timeArrived: undefined,
+                calls: new Array<string>()
             };
             entries.set(uuid, newEntry);
             saveDatabase(entries);
@@ -116,10 +118,11 @@ export function initializeServer(): InitializeServerResponse {
             const uuid: string = body["uuid"];
             const entryToModify: Entry | undefined = entries.get(uuid);
             if (entryToModify !== undefined) {
-                entryToModify.timeArrived = new Date().toLocaleTimeString();
+                entryToModify.timeArrived = (new Date()).toISOString();
                 saveDatabase(entries); 
-                const profitMap: Map<string, number> = calculateEarnings(entries, uuid);
+                const {profitMap, lossMap} = calculateEarnings(entries, uuid);
                 distributeEarnings(userData, profitMap);
+                moveToHistory(history, entryToModify, profitMap, lossMap);
                 broadcast(wss, convertEntries(entries)); 
                 res.sendStatus(200);
             } else {
@@ -134,7 +137,7 @@ export function initializeServer(): InitializeServerResponse {
         const body: PlaceBetRequest = req.body;
         console.debug("POST /place:", body);
         const entryToModify: Entry | undefined = entries.get(body.uuid);
-        if (req.session && req.session.user && entryToModify && entryToModify.timeArrived === "") {
+        if (req.session && req.session.user && entryToModify && entryToModify.timeArrived) {
             const username = req.session.user;
             const usernameData = userData.get(username);
             if (usernameData && usernameData.points >= body.pointsToBet) {

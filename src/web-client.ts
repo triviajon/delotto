@@ -1,7 +1,8 @@
 import { isAdmin } from "./utils/userUtils";
-import { Entry } from "./utils/entry"; 
+import { Entry } from "./utils/Entry"; 
 import { Call, CallType } from "./utils/Call";
 import { convertCallStringToCallObj } from "./utils/callUtils"; 
+import { TIME_REGEXP, US_LOCALIZATION } from "./utils/constants";
 
 /**
  * Loads entries from the server and renders them in the table.
@@ -12,7 +13,7 @@ async function loadEntries() {
 
     fetch("/entries")
         .then(response => response.json())
-        .then((data) => renderEntries(data, loggedIn, username))
+        .then((data) => {console.log("DATA!!!!!!!!:", data); renderEntries(data, loggedIn, username);})
         .catch(error => {
             console.error("Error fetching entries:", error);
         });
@@ -110,6 +111,11 @@ function loadAddEntry(addEntryButton: HTMLElement): void {
 
         if (name === "" || rehearsal === "" || callTime === "") {
             alert("Please enter name, rehearsal, and call time.");
+            return;
+        }
+
+        if (!TIME_REGEXP.test(callTime)) {
+            alert("Please enter a valid time in the format 'hh:mm' or 'hh:mm AM/PM'.");
             return;
         }
 
@@ -238,12 +244,23 @@ socket.addEventListener("message", function () {
     loadEntries();
 });
 
-
 function fillTimeArrivedField(row: HTMLElement, entry: Entry): void {
     const timeArrivedCell = row.querySelector(".row-timeArrived")!;
     const arrivedButton = document.createElement("button");
+    let arrivedButtonText = "";
+    if (entry.timeArrived) {
+        const timeArrivedDate: Date = new Date(entry.timeArrived);
+        if (!isNaN(timeArrivedDate.getTime())) {
+            // Theoretically valid date? Javascript things :pensive:
+            arrivedButtonText = timeArrivedDate.toLocaleTimeString(US_LOCALIZATION);
+        } else {
+            arrivedButtonText = "Error!";
+        }
+    } else {
+        arrivedButtonText = "arrived?";
+    }
     arrivedButton.className = "btn btn-secondary btn-sm arrived";
-    arrivedButton.textContent = entry.timeArrived ? entry.timeArrived : "arrived";
+    arrivedButton.textContent = arrivedButtonText;
     arrivedButton.addEventListener("click", function () {
         if (!entry.timeArrived) {
             const uuid = entry.uuid;
@@ -273,13 +290,13 @@ function renderEntries(entries: Map<string, Entry>, loggedIn: boolean, username:
     Object.entries(entries).forEach(([uuid, entry]: [string, Entry]) => {
         const row = rowTemplate.content.cloneNode(true) as HTMLElement;
 
-        console.debug(entry);
-
-        // Fill in the entry data
+        const lineTime: string = (new Date(entry.lineTime)).toLocaleTimeString(US_LOCALIZATION);
+        const callTime: string = (new Date(entry.callTime)).toLocaleTimeString(US_LOCALIZATION);
+        
         row.querySelector(".row-uuid")!.textContent = uuid;
         row.querySelector(".row-name")!.textContent = entry.name.toLowerCase();
         row.querySelector(".row-rehearsal")!.textContent = entry.rehearsal.toLowerCase();
-        row.querySelector(".row-lineCallTime")!.textContent = entry.lineTime + " / " + entry.callTime;
+        row.querySelector(".row-lineCallTime")!.textContent = lineTime + " / " + callTime;
         fillTimeArrivedField(row, entry);
 
         const marqueeElement = document.createElement("marquee");
@@ -320,7 +337,7 @@ function renderEntries(entries: Map<string, Entry>, loggedIn: boolean, username:
             deleteButton.style.display = "none";
             wagerButton.style.display = "none";
         } else {
-            wagerButton.style.display = (entry.timeArrived === "") ? "inline" : "none";
+            wagerButton.style.display = (entry.timeArrived) ? "inline" : "none";
             if (isAdmin(username)) {
                 editButton.style.display = "inline";
                 deleteButton.style.display = "inline";

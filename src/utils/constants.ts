@@ -1,7 +1,9 @@
 export const USER_DATABASE_FP: string = "lib/users.json";
 export const DATABASE_FP: string = "lib/database.json";
 export const HISTORY_FP: string = "lib/history.json";
+export const US_LOCALIZATION: string = "en-US";
 export const PORT: number = 8080;
 export const CALL_REGEXP: RegExp = /([a-zA-Z\d]+)([\^_])([1-9][\d]*)/gm;
+export const TIME_REGEXP: RegExp = /^(0?[1-9]|1[0-2]):([0-5][0-9])(\s?[APap][mM])?$/;
 export const SALT_ROUNDS: number = 10;
 export const STARTING_POINTS: number = 100;

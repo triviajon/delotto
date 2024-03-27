@@ -5,5 +5,5 @@ export interface HistoryEntry {
     name: string;
     callTime: string;
     lineTime: string;
-    arrivedTime: string;
+    timeArrived: string;
 }

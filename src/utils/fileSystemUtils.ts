@@ -1,6 +1,6 @@
 import fs from "fs";
 import { USER_DATABASE_FP, DATABASE_FP, HISTORY_FP } from "./constants";
-import { Entry } from "./entry";
+import { Entry } from "./Entry";
 import { convertEntries } from "./entryUtils";
 import { UserData } from "./UserData";
 import { HistoryEntry } from "./HistoryEntry";
