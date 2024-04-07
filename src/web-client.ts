@@ -31,7 +31,8 @@ async function listenForLogin(loginButton: HTMLElement): Promise<void> {
     loginButton.addEventListener("click", async () => {
         const username = (document.getElementById("username")! as HTMLInputElement).value;
         const password = (document.getElementById("password")! as HTMLInputElement).value;
-
+        
+        console.log("Starting /login POST.");
         fetch("/login", {
             method: "POST",
             headers: {
@@ -67,6 +68,7 @@ function loadLogout(username: string): void {
 
 function listenForLogout(logoutButton: HTMLElement): void {
     logoutButton.addEventListener("click", function () {
+        console.log("Starting /logout POST.");
         fetch("/logout", {
             method: "POST"
         })
@@ -86,13 +88,16 @@ function listenForLogout(logoutButton: HTMLElement): void {
 }
 
 function updatePoints(username: string): void {
+    console.log(`Starting call to /user/${username}`);
     fetch(`/user/${username}`)
         .then(response => {
+            console.log("Got response to /user");
             if (!response.ok) throw new Error("Could not retrieve user data!");
             return response.json();
         })
         .then(data => {
             const { points } = data;
+            console.log("/user responded with points:", data);
             document.getElementById("points")!.textContent = ` [${points} pts] `;
         })
         .catch(error => {
@@ -209,6 +214,18 @@ function listenForFormSubmit(): void {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+    const helpIcon = document.getElementById("helpIcon")!;
+    const helpOverlay = document.getElementById("helpOverlay")!;
+    const closeHelp = document.getElementById("closeHelp")!;
+  
+    helpIcon.addEventListener("click", function() {
+        helpOverlay.style.display = "block";
+    });
+  
+    closeHelp.addEventListener("click", function() {
+        helpOverlay.style.display = "none";
+    });
+
     const loginButton = document.getElementById("loginButton")!;
     const logoutButton = document.getElementById("logoutButton")!;
     const addEntryButton = document.getElementById("addEntry")!;
@@ -332,12 +349,14 @@ function renderEntries(entries: Map<string, Entry>, loggedIn: boolean, username:
         const deleteButton = row.querySelector(".delete") as HTMLButtonElement;
         const wagerButton = row.querySelector(".wager") as HTMLButtonElement;
 
+        console.log("time arrived?", entry.timeArrived, entry.timeArrived ? "yes" : "no");
+
         if (!loggedIn || username === undefined) {
             editButton.style.display = "none";
             deleteButton.style.display = "none";
             wagerButton.style.display = "none";
         } else {
-            wagerButton.style.display = (entry.timeArrived) ? "inline" : "none";
+            wagerButton.style.display = (entry.timeArrived === undefined) ? "inline" : "none";
             if (isAdmin(username)) {
                 editButton.style.display = "inline";
                 deleteButton.style.display = "inline";

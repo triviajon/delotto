@@ -240,3 +240,52 @@ button:hover {
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
+
+.help-overlay {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+  z-index: 1001; /* Ensure it's above other content */
+}
+
+.help-content {
+  text-align: center;
+}
+
+.help-icon {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  background-color: #ff9900;
+  color: #1a1a1a;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 24px;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.help-icon:hover {
+  background-color: #cc7a00;
+}
+
+p {
+  font-family: 'Courier New', Courier, monospace;
+  color: #333; /* Adjusted color for better readability */
+  font-weight: normal; /* Reset font weight */
+  margin-bottom: 10px; /* Add some space between paragraphs */
+}
+
+strong {
+  font-weight: bold; /* Make strong tags bold */
+}

@@ -164,19 +164,22 @@ export function initializeServer(): InitializeServerResponse {
         const params: GetUserRequest = req.params;
         console.debug("GET /user/:username:", params);
 
-        const user = userData.get(params.username);
-        if (req.session && req.session.user && user) {
+        const usersData = userData.get(params.username.toLowerCase());
+        if (req.session && req.session.user && usersData) {
             if (req.session.user == params.username || isAdmin(req.session.user)) {
                 const userResponse: GetUserResponse = {
-                    username: params.username,
-                    points: user.points
+                    username: usersData.username,
+                    points: usersData.points
                 };
-                res.json(userResponse);
+                console.debug("Response:", "GET /user/:username:", params, ":", userResponse);
+                res.status(200).json(userResponse);
             } else {
                 res.status(401);
+                console.debug("Response:", "GET /user/:username:", params, ":", 401);
             }
         } else {
             res.status(400);
+            console.debug("Response:", "GET /user/:username:", params, ":", 400);
         }
     });
 
@@ -201,7 +204,8 @@ export function initializeServer(): InitializeServerResponse {
     });
 
     app.get("/", function (req: Request, res: Response) {
-        res.end(fs.readFileSync("lib/web.html", { encoding: "utf-8" }));
+        console.debug("GET /");
+        res.send(fs.readFileSync("lib/web.html", { encoding: "utf-8" }));
     });
 
     // Endpoint to handle login requests
