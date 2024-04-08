@@ -17,6 +17,9 @@ import { Call, CallType } from "./Call";
 import { GetEntriesRequest, GetEntriesResponse, AddEntryRequest, LogTimeRequest, PlaceBetRequest, GetUserRequest, GetUserResponse, LoginRequest, LogoutRequest, GetSelfResponse } from "./apiModels";
 import { addToHistory } from "./historyUtils";
 import { convertTimeInputToISOString } from "./timeUtils";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 type InitializeServerResponse = { wss: WebSocketServer, server: Server, entries: Map<string, Entry> }
 
@@ -66,7 +69,7 @@ export function initializeServer(): InitializeServerResponse {
     app.use(express.json());
 
     app.use(session({
-        secret: "testSecret",
+        secret: process.env["SESSION_SECRET"]!,
         resave: false,
         saveUninitialized: true,
     }));
