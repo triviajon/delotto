@@ -1,4 +1,5 @@
 import { UserData } from "./UserData";
+import { STARTING_POINTS } from "./constants";
 import { encrypt } from "./encryptionUtils";
 import { saveUserDataMap } from "./fileSystemUtils";
 
@@ -13,7 +14,7 @@ import { saveUserDataMap } from "./fileSystemUtils";
  * @param points - The initial points of the new user.
  * @returns A Promise<void>.
  */
-export async function addUserEntry(userDataMap: Map<string, UserData>, username: string, password: string, points: number): Promise<void> {
+export async function addUserEntry(userDataMap: Map<string, UserData>, username: string, password: string, points: number=STARTING_POINTS): Promise<void> {
     const lowerUsername = username.toLowerCase();
 
     if (userDataMap.has(lowerUsername)) {

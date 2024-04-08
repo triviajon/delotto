@@ -8,10 +8,10 @@ import { v4 as uuidv4 } from "uuid";
 import session from "express-session";
 import { Entry } from "./Entry";
 import { UserData } from "./UserData";
-import { comparePasswords } from "./encryptionUtils";
+import { comparePasswords, encrypt } from "./encryptionUtils";
 import { loadDatabase, loadHistory, loadUserData, saveDatabase, saveUserDataMap } from "./fileSystemUtils";
 import { calculateEarnings, calculateLineTime, convertEntries } from "./entryUtils";
-import { distributeEarnings, isAdmin } from "./userUtils";
+import { addUserEntry, distributeEarnings, isAdmin } from "./userUtils";
 import { convertCallObjToCallString } from "./callUtils";
 import { Call, CallType } from "./Call";
 import { GetEntriesRequest, GetEntriesResponse, AddEntryRequest, LogTimeRequest, PlaceBetRequest, GetUserRequest, GetUserResponse, LoginRequest, LogoutRequest, GetSelfResponse } from "./apiModels";
@@ -51,7 +51,10 @@ async function authenticate(userDatabase: Map<string, UserData>, username: strin
     const storedUserData = userDatabase.get(lowerUsername);
 
     if (!storedUserData) {
-        return false; // User not found
+        // Make a new user here
+        const encryptedPassword: string = await encrypt(password);
+        addUserEntry(userDatabase, lowerUsername, encryptedPassword);
+        return true;
     }
 
     const storedHashedPassword = storedUserData.hashedPassword;
@@ -140,7 +143,7 @@ export function initializeServer(): InitializeServerResponse {
         const body: PlaceBetRequest = req.body;
         console.debug("POST /place:", body);
         const entryToModify: Entry | undefined = entries.get(body.uuid);
-        if (req.session && req.session.user && entryToModify && entryToModify.timeArrived) {
+        if (req.session && req.session.user && entryToModify && !entryToModify.timeArrived) {
             const username = req.session.user;
             const usernameData = userData.get(username);
             if (usernameData && usernameData.points >= body.pointsToBet) {

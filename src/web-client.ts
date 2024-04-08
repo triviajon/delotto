@@ -264,11 +264,18 @@ socket.addEventListener("message", function () {
 function fillTimeArrivedField(row: HTMLElement, entry: Entry): void {
     const timeArrivedCell = row.querySelector(".row-timeArrived")!;
     const arrivedButton = document.createElement("button");
+    arrivedButton.className = "btn btn-secondary btn-sm arrived";
     let arrivedButtonText = "";
     if (entry.timeArrived) {
         const timeArrivedDate: Date = new Date(entry.timeArrived);
         if (!isNaN(timeArrivedDate.getTime())) {
             // Theoretically valid date? Javascript things :pensive:
+            const lineTime: Date = new Date(entry.lineTime);
+            if (timeArrivedDate > lineTime) {
+                arrivedButton.classList.add("red-color");
+            } else {
+                arrivedButton.classList.add("green-color");
+            }
             arrivedButtonText = timeArrivedDate.toLocaleTimeString(US_LOCALIZATION);
         } else {
             arrivedButtonText = "Error!";
@@ -276,7 +283,6 @@ function fillTimeArrivedField(row: HTMLElement, entry: Entry): void {
     } else {
         arrivedButtonText = "arrived?";
     }
-    arrivedButton.className = "btn btn-secondary btn-sm arrived";
     arrivedButton.textContent = arrivedButtonText;
     arrivedButton.addEventListener("click", function () {
         if (!entry.timeArrived) {

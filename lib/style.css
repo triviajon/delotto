@@ -30,6 +30,23 @@ button {
   cursor: pointer;
 }
 
+.red-color {
+  background-color: #E1515F;
+}
+
+.green-color {
+  background-color: #acc081;
+}
+
+.over {
+  color: #E1515F;
+}
+
+.under {
+  color: #acc081;
+}
+
+
 button:hover {
   background-color: #cc7a00;
 }
@@ -81,14 +98,6 @@ button:hover {
 .row-timeArrived,
 .row-actions {
   text-align: center;
-}
-
-.over {
-  color: rgb(238, 83, 83);
-}
-
-.under {
-  color: rgb(102, 227, 129);
 }
 
 .login-container,
